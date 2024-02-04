@@ -12,7 +12,7 @@ mod tests;
 
 const DNA_4BIT_DECODE_MAP: [u8; 16] = [0, 65, 67, 71, 84, 97, 99, 103, 116, 78, 110, 0, 0, 0, 0, 0];
 
-pub const EMPTY_STRING: & str = "";
+pub const EMPTY_STRING: &str = "";
 
 pub struct Location {
     pub chr: String,
@@ -21,20 +21,72 @@ pub struct Location {
 }
 
 impl Location {
-    pub fn parse(location: &str) -> Location {
+    pub fn new(chr: String, start: u32, end: u32) -> Location {
+        let s: u32 = cmp::max(1, cmp::min(start, end));
+
+        Location {
+            chr,
+            start: s,
+            end: cmp::max(s, end),
+        }
+    }
+
+    // pub fn chr(&self)->&str {
+    //     return &self.chr;
+    // }
+
+    // pub fn start(&self)->u32 {
+    //     return self.start;
+    // }
+
+    // pub fn end(&self)->u32 {
+    //     return self.start;
+    // }
+
+    pub fn length(&self) -> u32 {
+        return self.end - self.start + 1;
+    }
+
+    // Returns the mid point of the location.
+    pub fn mid(&self) -> u32 {
+        return (self.start + self.end) / 2;
+    }
+
+    // Converts a string location of the form "chr1:1-2" into a location struct.
+    pub fn parse(location: &str) -> Result<Location, String> {
+        if !location.contains(":") || !location.contains("chr") {
+            panic!("invalid location format")
+        }
+
         let tokens: Vec<String> = location.split(":").map(String::from).collect();
 
         let chr: String = tokens[0].to_string();
 
-        let tokens2: Vec<String> = tokens[1].split("-").map(String::from).collect();
-        let start: u32 = tokens2[0].parse().unwrap_or(1);
-        let end: u32 = tokens2[1].parse().unwrap_or(1);
+        let start: u32;
+        let end: u32;
 
-        return Location {
-            chr,
-            start: cmp::min(start, end),
-            end: cmp::max(start, end),
-        };
+        if tokens[1].contains("-") {
+            let range_tokens: Vec<String> = tokens[1].split("-").map(String::from).collect();
+
+            start = match range_tokens[0].parse() {
+                Ok(start) => start,
+                Err(_) => panic!("invalid location format"),
+            };
+
+            end = match range_tokens[1].parse() {
+                Ok(start) => start,
+                Err(_) => panic!("invalid location format"),
+            };
+        } else {
+            start = match tokens[1].parse() {
+                Ok(start) => start,
+                Err(_) => panic!("invalid location format"),
+            };
+
+            end = start;
+        }
+
+        Ok(Location::new(chr, start, end))
     }
 }
 
@@ -82,7 +134,7 @@ impl DNA<'_> {
     //     self.comp(dna);
     // }
 
-    pub fn get_dna(&self, location: &Location, rev: bool, comp: bool) -> String {
+    pub fn get_dna(&self, location: &Location, rev: bool, comp: bool) -> Result<String, String> {
         let mut s: u32 = location.start - 1;
         let e: u32 = location.end - 1;
         let l: u32 = e - s + 1;
@@ -100,17 +152,17 @@ impl DNA<'_> {
 
         let mut f: File = match File::open(file) {
             Ok(file) => file,
-            Err(_) => return EMPTY_STRING.to_string(),
+            Err(_) => panic!("cannot open file"),
         };
 
         match f.seek(SeekFrom::Start((1 + bs) as u64)) {
             Ok(_) => (),
-            Err(_) => return EMPTY_STRING.to_string(),
+            Err(_) => panic!("offset invalid"),
         };
 
         match f.read(&mut d) {
             Ok(_) => (),
-            Err(_) => return EMPTY_STRING.to_string(),
+            Err(_) => panic!("buffer invalid"),
         };
 
         let mut dna: Vec<u8> = vec![0; l as usize];
@@ -153,8 +205,8 @@ impl DNA<'_> {
         }
 
         return match str::from_utf8(&dna) {
-            Ok(str) => str.to_string(),
-            Err(_) => return EMPTY_STRING.to_string(),
+            Ok(str) => Ok(str.to_string()),
+            Err(_) => panic!("utf8 error"),
         };
     }
 }
