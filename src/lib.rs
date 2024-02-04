@@ -29,7 +29,7 @@ impl Location {
         let s: u32 = cmp::max(1, cmp::min(start, end));
 
         Ok(Location {
-            chr:chr.to_string(),
+            chr: chr.to_string(),
             start: s,
             end: cmp::max(s, end),
         })
@@ -64,7 +64,7 @@ impl Location {
 
         let tokens: Vec<String> = location.split(":").map(String::from).collect();
 
-        let chr: &str = &tokens[0] ;
+        let chr: &str = &tokens[0];
 
         let start: u32;
         let end: u32;
@@ -105,36 +105,35 @@ impl fmt::Display for Location {
     }
 }
 
+// Complement base e.g. 65 (A) => 84 (T)
+fn comp_base(b: u8) -> u8 {
+    match b {
+        65 => 84,
+        67 => 71,
+        71 => 67,
+        84 => 65,
+        97 => 116,
+        99 => 103,
+        103 => 99,
+        116 => 97,
+        78 => 78,
+        110 => 10,
+        _ => 0,
+    }
+}
+
 pub struct DNA {
     dir: String,
-    compliment_map: HashMap<u8, u8>,
 }
 
 impl DNA {
     pub fn new(dir: String) -> DNA {
-        let m: HashMap<u8, u8> = HashMap::from([
-            (0, 0),
-            (65, 84),
-            (67, 71),
-            (71, 67),
-            (84, 65),
-            (97, 116),
-            (99, 103),
-            (103, 99),
-            (116, 97),
-            (78, 78),
-            (110, 10),
-        ]);
-
-        return DNA {
-            dir,
-            compliment_map: m,
-        };
+        return DNA { dir };
     }
 
     fn comp(&self, dna: &mut Vec<u8>) {
-        for i in 0..dna.len() as usize {
-            dna[i] = self.compliment_map[&dna[i]]
+        for i in 0..dna.len() {
+            dna[i] = comp_base(dna[i])
         }
     }
 
