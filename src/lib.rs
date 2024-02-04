@@ -105,13 +105,13 @@ impl fmt::Display for Location {
     }
 }
 
-pub struct DNA<'a> {
-    dir: &'a str,
+pub struct DNA {
+    dir: String,
     compliment_map: HashMap<u8, u8>,
 }
 
-impl DNA<'_> {
-    pub fn new(dir: &str) -> DNA {
+impl DNA {
+    pub fn new(dir: String) -> DNA {
         let m: HashMap<u8, u8> = HashMap::from([
             (0, 0),
             (65, 84),
