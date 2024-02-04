@@ -21,14 +21,18 @@ pub struct Location {
 }
 
 impl Location {
-    pub fn new(chr: String, start: u32, end: u32) -> Location {
+    pub fn new(chr: &str, start: u32, end: u32) -> Result<Location, String> {
+        if !chr.contains("chr") {
+            panic!("chr {} is invalid", chr);
+        }
+
         let s: u32 = cmp::max(1, cmp::min(start, end));
 
-        Location {
-            chr,
+        Ok(Location {
+            chr:chr.to_string(),
             start: s,
             end: cmp::max(s, end),
-        }
+        })
     }
 
     // pub fn chr(&self)->&str {
@@ -60,7 +64,7 @@ impl Location {
 
         let tokens: Vec<String> = location.split(":").map(String::from).collect();
 
-        let chr: String = tokens[0].to_string();
+        let chr: &str = &tokens[0] ;
 
         let start: u32;
         let end: u32;
@@ -70,23 +74,28 @@ impl Location {
 
             start = match range_tokens[0].parse() {
                 Ok(start) => start,
-                Err(_) => panic!("invalid location format"),
+                Err(_) => return Err("invalid location format".to_string()),
             };
 
             end = match range_tokens[1].parse() {
                 Ok(start) => start,
-                Err(_) => panic!("invalid location format"),
+                Err(_) => return Err("invalid location format".to_string()),
             };
         } else {
             start = match tokens[1].parse() {
                 Ok(start) => start,
-                Err(_) => panic!("invalid location format"),
+                Err(_) => return Err("invalid location format".to_string()),
             };
 
             end = start;
         }
 
-        Ok(Location::new(chr, start, end))
+        let loc = match Location::new(chr, start, end) {
+            Ok(loc) => loc,
+            Err(err) => return Err(format!("{}", err)),
+        };
+
+        Ok(loc)
     }
 }
 
@@ -152,17 +161,17 @@ impl DNA<'_> {
 
         let mut f: File = match File::open(file) {
             Ok(file) => file,
-            Err(_) => panic!("cannot open file"),
+            Err(_) => return Err("cannot open file".to_string()),
         };
 
         match f.seek(SeekFrom::Start((1 + bs) as u64)) {
             Ok(_) => (),
-            Err(_) => panic!("offset invalid"),
+            Err(_) => return Err("offset invalid".to_string()),
         };
 
         match f.read(&mut d) {
             Ok(_) => (),
-            Err(_) => panic!("buffer invalid"),
+            Err(_) => return Err("buffer invalid".to_string()),
         };
 
         let mut dna: Vec<u8> = vec![0; l as usize];
@@ -206,7 +215,7 @@ impl DNA<'_> {
 
         return match str::from_utf8(&dna) {
             Ok(str) => Ok(str.to_string()),
-            Err(_) => panic!("utf8 error"),
+            Err(_) => return Err("utf8 error".to_string()),
         };
     }
 }
