@@ -1,6 +1,5 @@
 use std::{
     cmp,
-    collections::HashMap,
     fmt,
     fs::File,
     io::{Read, Seek, SeekFrom},
