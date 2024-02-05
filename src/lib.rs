@@ -5,6 +5,7 @@ use std::{
     path::Path,
     str,
 };
+use serde::Serialize;
 
 mod tests;
 
@@ -14,6 +15,21 @@ const DNA_4BIT_DECODE_MAP: [u8; 16] = [0, 65, 67, 71, 84, 97, 99, 103, 116, 78, 
 
 pub const EMPTY_STRING: &str = "";
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Format {
+    None,
+    Lower,
+    Upper,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum RepeatMask {
+    None,
+    Lower,
+    N,
+}
+
+#[derive(Serialize)]
 pub struct Location {
     pub chr: String,
     pub start: u32,
@@ -195,19 +211,7 @@ fn compliment(dna: &mut Vec<u8>) {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum Format {
-    None,
-    Lower,
-    Upper,
-}
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum RepeatMask {
-    None,
-    Lower,
-    N,
-}
 
 pub struct DNA {
     dir: String,
