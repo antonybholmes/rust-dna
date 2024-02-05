@@ -1,6 +1,5 @@
 use std::{
-    cmp,
-    fmt,
+    cmp, fmt,
     fs::File,
     io::{Read, Seek, SeekFrom},
     path::Path,
@@ -8,6 +7,8 @@ use std::{
 };
 
 mod tests;
+
+const BASE_N: u8 = 78;
 
 const DNA_4BIT_DECODE_MAP: [u8; 16] = [0, 65, 67, 71, 84, 97, 99, 103, 116, 78, 110, 0, 0, 0, 0, 0];
 
@@ -104,7 +105,74 @@ impl fmt::Display for Location {
     }
 }
 
-// Complement base e.g. 65 (A) => 84 (T)
+fn to_upper(b: u8) -> u8 {
+    match b {
+        97 => 65,
+        99 => 67,
+        103 => 71,
+        116 => 84,
+        110 => BASE_N,
+        65 => 65,
+        67 => 67,
+        71 => 71,
+        85 => 85,
+        BASE_N => BASE_N,
+        _ => 0,
+    }
+}
+
+fn is_lower(b: u8) -> bool {
+    match b {
+        97 => true,
+        99 => true,
+        103 => true,
+        116 => true,
+        110 => true,
+        _ => false,
+    }
+}
+
+fn to_lower(b: u8) -> u8 {
+    match b {
+        65 => 97,
+        67 => 99,
+        71 => 103,
+        84 => 116,
+        BASE_N => 110,
+        97 => 97,
+        99 => 99,
+        103 => 103,
+        116 => 116,
+        110 => 110,
+        _ => 0,
+    }
+}
+
+fn change_case(dna: &mut Vec<u8>, case_mask: &CaseMask, repeat_mask: &RepeatMask) {
+    println!("{:?} {}", repeat_mask, *repeat_mask != RepeatMask::None);
+    if *case_mask == CaseMask::None || *repeat_mask != RepeatMask::None {
+        return;
+    }
+
+    for i in 0..dna.len() {
+        match case_mask {
+            CaseMask::Lower => dna[i] = to_lower(dna[i]),
+            CaseMask::Upper => dna[i] = to_upper(dna[i]),
+            _ => (),
+        }
+    }
+}
+
+fn change_repeat_mask(dna: &mut Vec<u8>, repeat_mask: &RepeatMask) {
+    if *repeat_mask == RepeatMask::N {
+        for i in 0..dna.len() {
+            if is_lower(dna[i]) {
+                dna[i] = BASE_N
+            }
+        }
+    }
+}
+
 fn comp_base(b: u8) -> u8 {
     match b {
         65 => 84,
@@ -121,6 +189,26 @@ fn comp_base(b: u8) -> u8 {
     }
 }
 
+fn compliment(dna: &mut Vec<u8>) {
+    for i in 0..dna.len() {
+        dna[i] = comp_base(dna[i])
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum CaseMask {
+    None,
+    Lower,
+    Upper,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum RepeatMask {
+    None,
+    Lower,
+    N,
+}
+
 pub struct DNA {
     dir: String,
 }
@@ -130,18 +218,19 @@ impl DNA {
         return DNA { dir };
     }
 
-    fn comp(&self, dna: &mut Vec<u8>) {
-        for i in 0..dna.len() {
-            dna[i] = comp_base(dna[i])
-        }
-    }
-
     // fn rev_comp(&self, dna: &mut Vec<u8>) {
     //     dna.reverse();
     //     self.comp(dna);
     // }
 
-    pub fn get_dna(&self, location: &Location, rev: bool, comp: bool) -> Result<String, String> {
+    pub fn get_dna(
+        &self,
+        location: &Location,
+        rev: bool,
+        comp: bool,
+        case_mask: &CaseMask,
+        repeat_mask: &RepeatMask,
+    ) -> Result<String, String> {
         let mut s: u32 = location.start - 1;
         let e: u32 = location.end - 1;
         let l: u32 = e - s + 1;
@@ -151,11 +240,13 @@ impl DNA {
 
         let mut d: Vec<u8> = vec![0; bl as usize];
 
-        let file: String = Path::new(&self.dir)
+        let file: String = match Path::new(&self.dir)
             .join(format!("{}.dna.4bit", location.chr.to_lowercase()))
             .to_str()
-            .unwrap()
-            .to_string();
+        {
+            Some(s) => s.to_string(),
+            None => return Err("cannot open file".to_string()),
+        };
 
         let mut f: File = match File::open(file) {
             Ok(file) => file,
@@ -208,12 +299,18 @@ impl DNA {
         }
 
         if comp {
-            self.comp(&mut dna)
+            compliment(&mut dna)
         }
 
-        return match str::from_utf8(&dna) {
-            Ok(str) => Ok(str.to_string()),
-            Err(_) => return Err("utf8 error".to_string()),
+        change_repeat_mask(&mut dna, repeat_mask);
+
+        change_case(&mut dna, case_mask, repeat_mask);
+
+        let s: String = match String::from_utf8(dna) {
+            Ok(s) => s,
+            Err(err) => return Err(err.to_string()),
         };
+
+        Ok(s)
     }
 }
