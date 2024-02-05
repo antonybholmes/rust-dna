@@ -148,16 +148,16 @@ fn to_lower(b: u8) -> u8 {
     }
 }
 
-fn change_case(dna: &mut Vec<u8>, case_mask: &CaseMask, repeat_mask: &RepeatMask) {
+fn change_case(dna: &mut Vec<u8>, format: &Format, repeat_mask: &RepeatMask) {
     println!("{:?} {}", repeat_mask, *repeat_mask != RepeatMask::None);
-    if *case_mask == CaseMask::None || *repeat_mask != RepeatMask::None {
+    if *format == Format::None || *repeat_mask != RepeatMask::None {
         return;
     }
 
     for i in 0..dna.len() {
-        match case_mask {
-            CaseMask::Lower => dna[i] = to_lower(dna[i]),
-            CaseMask::Upper => dna[i] = to_upper(dna[i]),
+        match format {
+            Format::Lower => dna[i] = to_lower(dna[i]),
+            Format::Upper => dna[i] = to_upper(dna[i]),
             _ => (),
         }
     }
@@ -196,7 +196,7 @@ fn compliment(dna: &mut Vec<u8>) {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum CaseMask {
+pub enum Format {
     None,
     Lower,
     Upper,
@@ -228,7 +228,7 @@ impl DNA {
         location: &Location,
         rev: bool,
         comp: bool,
-        case_mask: &CaseMask,
+        format: &Format,
         repeat_mask: &RepeatMask,
     ) -> Result<String, String> {
         let mut s: u32 = location.start - 1;
@@ -304,7 +304,7 @@ impl DNA {
 
         change_repeat_mask(&mut dna, repeat_mask);
 
-        change_case(&mut dna, case_mask, repeat_mask);
+        change_case(&mut dna, format, repeat_mask);
 
         let s: String = match String::from_utf8(dna) {
             Ok(s) => s,
