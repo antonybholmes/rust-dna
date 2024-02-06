@@ -32,20 +32,20 @@ pub enum RepeatMask {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Location {
     pub chr: String,
-    pub start: u32,
-    pub end: u32,
+    pub start: i32,
+    pub end: i32,
 }
 
 impl Location {
-    pub fn new(chr: &str, start: u32, end: u32) -> Result<Location, String> {
+    pub fn new(chr: &str, start: i32, end: i32) -> Result<Location, String> {
         if !chr.contains("chr") {
             panic!("chr {} is invalid", chr);
         }
 
-        let s: u32 = cmp::max(1, cmp::min(start, end));
+        let s: i32 = cmp::max(1, cmp::min(start, end));
 
         Ok(Location {
-            chr: chr.to_string(),
+            chr:chr.to_string(),
             start: s,
             end: cmp::max(s, end),
         })
@@ -63,12 +63,12 @@ impl Location {
     //     return self.start;
     // }
 
-    pub fn length(&self) -> u32 {
+    pub fn length(&self) -> i32 {
         return self.end - self.start + 1;
     }
 
     // Returns the mid point of the location.
-    pub fn mid(&self) -> u32 {
+    pub fn mid(&self) -> i32 {
         return (self.start + self.end) / 2;
     }
 
@@ -78,15 +78,15 @@ impl Location {
             panic!("invalid location format")
         }
 
-        let tokens: Vec<String> = location.split(":").map(String::from).collect();
+        let tokens: Vec<&str> = location.split(":").collect();
 
-        let chr: &str = &tokens[0];
+        let chr: &str = tokens[0];
 
-        let start: u32;
-        let end: u32;
+        let start: i32;
+        let end: i32;
 
         if tokens[1].contains("-") {
-            let range_tokens: Vec<String> = tokens[1].split("-").map(String::from).collect();
+            let range_tokens:Vec<&str> = tokens[1].split("-").collect();
 
             start = match range_tokens[0].parse() {
                 Ok(start) => start,
@@ -218,8 +218,8 @@ pub struct DNA {
 }
 
 impl DNA {
-    pub fn new(dir: String) -> DNA {
-        return DNA { dir };
+    pub fn new(dir: &str) -> DNA {
+        return DNA { dir:dir.to_string() };
     }
 
     // fn rev_comp(&self, dna: &mut Vec<u8>) {
@@ -235,12 +235,12 @@ impl DNA {
         format: &Format,
         repeat_mask: &RepeatMask,
     ) -> Result<String, String> {
-        let mut s: u32 = location.start - 1;
-        let e: u32 = location.end - 1;
-        let l: u32 = e - s + 1;
-        let bs: u32 = s / 2;
-        let be: u32 = e / 2;
-        let bl: u32 = be - bs + 1;
+        let mut s: i32 = location.start - 1;
+        let e: i32 = location.end - 1;
+        let l: i32 = e - s + 1;
+        let bs: i32 = s / 2;
+        let be: i32 = e / 2;
+        let bl: i32 = be - bs + 1;
 
         let mut d: Vec<u8> = vec![0; bl as usize];
 
@@ -270,9 +270,9 @@ impl DNA {
         let mut dna: Vec<u8> = vec![0; l as usize];
 
         // which byte we are scanning (each byte contains 2 bases)
-        let mut byte_index: u32 = 0;
+        let mut byte_index: i32 = 0;
         let mut v: u8;
-        let mut base_index: u32;
+        let mut base_index: i32;
 
         for i in 0..l {
             // Which base we want in the byte
