@@ -5,7 +5,7 @@ use std::{
     path::Path,
     str,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 mod tests;
 
@@ -29,7 +29,7 @@ pub enum RepeatMask {
     N,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Location {
     pub chr: String,
     pub start: u32,
