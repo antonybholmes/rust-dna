@@ -1,9 +1,5 @@
 use std::{
-    cmp, fmt,
-    fs::File,
-    io::{Read, Seek, SeekFrom},
-    path::Path,
-    str,
+    cmp, fmt, fs::File, io::{Read, Seek, SeekFrom}, path::Path, str
 };
 use serde::{Deserialize, Serialize};
 
@@ -37,7 +33,7 @@ pub struct Location {
 }
 
 impl Location {
-    pub fn new(chr: &str, start: i32, end: i32) -> Result<Location, String> {
+    pub fn new(chr: &str, start: i32, end: i32) -> Result<Self, String> {
         if !chr.contains("chr") {
             panic!("chr {} is invalid", chr);
         }
@@ -218,7 +214,7 @@ pub struct DNA {
 }
 
 impl DNA {
-    pub fn new(dir: &str) -> DNA {
+    pub fn new(dir: &str) -> Self {
         return DNA { dir:dir.to_string() };
     }
 
