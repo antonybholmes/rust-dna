@@ -28,17 +28,17 @@ pub enum RepeatMask {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Location {
     pub chr: String,
-    pub start: i32,
-    pub end: i32,
+    pub start: u32,
+    pub end: u32,
 }
 
 impl Location {
-    pub fn new(chr: &str, start: i32, end: i32) -> Result<Self, String> {
+    pub fn new(chr: &str, start: u32, end: u32) -> Result<Self, String> {
         if !chr.contains("chr") {
             panic!("chr {} is invalid", chr);
         }
 
-        let s: i32 = cmp::max(1, cmp::min(start, end));
+        let s: u32 = cmp::max(1, cmp::min(start, end));
 
         Ok(Location {
             chr:chr.to_string(),
@@ -59,12 +59,12 @@ impl Location {
     //     return self.start;
     // }
 
-    pub fn length(&self) -> i32 {
+    pub fn length(&self) -> u32 {
         return self.end - self.start + 1;
     }
 
     // Returns the mid point of the location.
-    pub fn mid(&self) -> i32 {
+    pub fn mid(&self) -> u32 {
         return (self.start + self.end) / 2;
     }
 
@@ -78,8 +78,8 @@ impl Location {
 
         let chr: &str = tokens[0];
 
-        let start: i32;
-        let end: i32;
+        let start: u32;
+        let end: u32;
 
         if tokens[1].contains("-") {
             let range_tokens:Vec<&str> = tokens[1].split("-").collect();
@@ -102,7 +102,7 @@ impl Location {
             end = start;
         }
 
-        let loc = match Location::new(chr, start, end) {
+        let loc: Location = match Location::new(chr, start, end) {
             Ok(loc) => loc,
             Err(err) => return Err(format!("{}", err)),
         };
@@ -160,6 +160,16 @@ fn to_lower(b: u8) -> u8 {
     }
 }
 
+fn change_repeat_mask(dna: &mut Vec<u8>, repeat_mask: &RepeatMask) {
+    if *repeat_mask == RepeatMask::N {
+        for i in 0..dna.len() {
+            if is_lower(dna[i]) {
+                dna[i] = BASE_N
+            }
+        }
+    }
+} 
+
 fn change_case(dna: &mut Vec<u8>, format: &Format, repeat_mask: &RepeatMask) {
     println!("{:?} {}", repeat_mask, *repeat_mask != RepeatMask::None);
     if *format == Format::None || *repeat_mask != RepeatMask::None {
@@ -175,15 +185,7 @@ fn change_case(dna: &mut Vec<u8>, format: &Format, repeat_mask: &RepeatMask) {
     }
 }
 
-fn change_repeat_mask(dna: &mut Vec<u8>, repeat_mask: &RepeatMask) {
-    if *repeat_mask == RepeatMask::N {
-        for i in 0..dna.len() {
-            if is_lower(dna[i]) {
-                dna[i] = BASE_N
-            }
-        }
-    }
-}
+
 
 fn comp_base(b: u8) -> u8 {
     match b {
@@ -231,12 +233,12 @@ impl DNA {
         format: &Format,
         repeat_mask: &RepeatMask,
     ) -> Result<String, String> {
-        let mut s: i32 = location.start - 1;
-        let e: i32 = location.end - 1;
-        let l: i32 = e - s + 1;
-        let bs: i32 = s / 2;
-        let be: i32 = e / 2;
-        let bl: i32 = be - bs + 1;
+        let mut s: u32 = location.start - 1;
+        let e: u32 = location.end - 1;
+        let l: u32 = e - s + 1;
+        let bs: u32 = s / 2;
+        let be: u32 = e / 2;
+        let bl: u32 = be - bs + 1;
 
         let mut d: Vec<u8> = vec![0; bl as usize];
 
@@ -266,9 +268,9 @@ impl DNA {
         let mut dna: Vec<u8> = vec![0; l as usize];
 
         // which byte we are scanning (each byte contains 2 bases)
-        let mut byte_index: i32 = 0;
+        let mut byte_index: u32 = 0;
         let mut v: u8;
-        let mut base_index: i32;
+        let mut base_index: u32;
 
         for i in 0..l {
             // Which base we want in the byte
