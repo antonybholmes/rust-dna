@@ -211,13 +211,13 @@ fn compliment(dna: &mut Vec<u8>) {
 
 
 
-pub struct DNA {
+pub struct DnaDb {
     dir: String,
 }
 
-impl DNA {
+impl DnaDb {
     pub fn new(dir: &str) -> Self {
-        return DNA { dir:dir.to_string() };
+        return DnaDb { dir:dir.to_string() };
     }
 
     // fn rev_comp(&self, dna: &mut Vec<u8>) {
@@ -225,7 +225,7 @@ impl DNA {
     //     self.comp(dna);
     // }
 
-    pub fn get_dna(
+    pub fn dna(
         &self,
         location: &Location,
         rev: bool,
