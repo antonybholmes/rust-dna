@@ -1,5 +1,5 @@
 use std::{
-    cmp, fmt, fs::File, io::{Read, Seek, SeekFrom}, path::Path, str
+    cmp, error::Error, fmt::{self, Display}, fs::File, io::{Read, Seek, SeekFrom}, path::Path, str::{self, FromStr}
 };
 use serde::{Deserialize, Serialize};
 
@@ -10,6 +10,8 @@ const BASE_N: u8 = 78;
 const DNA_4BIT_DECODE_MAP: [u8; 16] = [0, 65, 67, 71, 84, 97, 99, 103, 116, 78, 110, 0, 0, 0, 0, 0];
 
 pub const EMPTY_STRING: &str = "";
+
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Format {
@@ -32,10 +34,31 @@ pub struct Location {
     pub end: u32,
 }
 
+#[derive(Debug, Clone)]
+pub enum DnaError {
+    DatabaseError(String),
+    LocationError(String),
+    FormatError(String),
+}
+
+impl Error for DnaError {}
+
+impl Display for DnaError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DnaError::DatabaseError(error) => write!(f, "{}", error),
+            DnaError::LocationError(error) => write!(f, "{}", error),
+            DnaError::FormatError(error) => write!(f, "{}", error),
+        }
+    }
+}
+
+pub type DnaResult<T> = Result<T, DnaError>;
+
 impl Location {
-    pub fn new(chr: &str, start: u32, end: u32) -> Result<Self, String> {
+    pub fn new(chr: &str, start: u32, end: u32) -> DnaResult<Self> {
         if !chr.contains("chr") {
-            panic!("chr {} is invalid", chr);
+            return Err(DnaError::LocationError(format!("chr {} is invalid", chr)));
         }
 
         let s: u32 = cmp::max(1, cmp::min(start, end));
@@ -69,9 +92,9 @@ impl Location {
     }
 
     // Converts a string location of the form "chr1:1-2" into a location struct.
-    pub fn parse(location: &str) -> Result<Location, String> {
+    pub fn parse(location: &str) -> DnaResult<Location> {
         if !location.contains(":") || !location.contains("chr") {
-            panic!("invalid location format")
+            return Err(DnaError::LocationError(format!("invalid location format")));
         }
 
         let tokens: Vec<&str> = location.split(":").collect();
@@ -84,28 +107,16 @@ impl Location {
         if tokens[1].contains("-") {
             let range_tokens:Vec<&str> = tokens[1].split("-").collect();
 
-            start = match range_tokens[0].parse() {
-                Ok(start) => start,
-                Err(_) => return Err("invalid location format".to_string()),
-            };
+            start = unwrap_location(range_tokens[0])?;
 
-            end = match range_tokens[1].parse() {
-                Ok(start) => start,
-                Err(_) => return Err("invalid location format".to_string()),
-            };
+            end = unwrap_location(range_tokens[1])?;
         } else {
-            start = match tokens[1].parse() {
-                Ok(start) => start,
-                Err(_) => return Err("invalid location format".to_string()),
-            };
+            start = unwrap_location(tokens[1])?;
 
             end = start;
         }
 
-        let loc: Location = match Location::new(chr, start, end) {
-            Ok(loc) => loc,
-            Err(err) => return Err(format!("{}", err)),
-        };
+        let loc: Location = Location::new(chr, start, end)?;
 
         Ok(loc)
     }
@@ -115,6 +126,19 @@ impl fmt::Display for Location {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}:{}-{}", self.chr, self.start, self.end)
     }
+}
+
+fn unwrap_location<T:FromStr>(token:&str) -> DnaResult<T> {
+     match token.parse() {
+        Ok(start) => Ok(start),
+        Err(_) => Err(DnaError::LocationError("invalid location format".to_string())),
+    }
+}
+
+#[derive(Serialize)]
+pub struct DNA {
+    pub location: Location,
+    pub dna: String,
 }
 
 fn to_upper(b: u8) -> u8 {
@@ -185,8 +209,6 @@ fn change_case(dna: &mut Vec<u8>, format: &Format, repeat_mask: &RepeatMask) {
     }
 }
 
-
-
 fn comp_base(b: u8) -> u8 {
     match b {
         65 => 84,
@@ -232,7 +254,7 @@ impl DnaDb {
         comp: bool,
         format: &Format,
         repeat_mask: &RepeatMask,
-    ) -> Result<String, String> {
+    ) -> DnaResult<String> {
         let mut s: u32 = location.start - 1;
         let e: u32 = location.end - 1;
         let l: u32 = e - s + 1;
@@ -247,22 +269,22 @@ impl DnaDb {
             .to_str()
         {
             Some(s) => s.to_string(),
-            None => return Err("cannot open file".to_string()),
+            None => return Err(DnaError::DatabaseError("cannot open file".to_string())),
         };
 
         let mut f: File = match File::open(file) {
             Ok(file) => file,
-            Err(_) => return Err("cannot open file".to_string()),
+            Err(_) => return Err(DnaError::DatabaseError("cannot open file".to_string())),
         };
 
         match f.seek(SeekFrom::Start((1 + bs) as u64)) {
             Ok(_) => (),
-            Err(_) => return Err("offset invalid".to_string()),
+            Err(_) => return Err(DnaError::DatabaseError("offset invalid".to_string())),
         };
 
         match f.read(&mut d) {
             Ok(_) => (),
-            Err(_) => return Err("buffer invalid".to_string()),
+            Err(_) => return Err(DnaError::DatabaseError("buffer invalid".to_string())),
         };
 
         let mut dna: Vec<u8> = vec![0; l as usize];
@@ -310,7 +332,7 @@ impl DnaDb {
 
         let s: String = match String::from_utf8(dna) {
             Ok(s) => s,
-            Err(err) => return Err(err.to_string()),
+            Err(err) => return Err(DnaError::FormatError(err.to_string())),
         };
 
         Ok(s)
