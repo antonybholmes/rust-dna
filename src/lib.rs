@@ -136,7 +136,7 @@ fn unwrap_location<T:FromStr>(token:&str) -> DnaResult<T> {
 }
 
 #[derive(Serialize)]
-pub struct DNA {
+pub struct DnaSeq {
     pub location: Location,
     pub dna: String,
 }
